@@ -202,12 +202,15 @@ let score = 0;
 let errors = 0;
 let remainingCountries = [...countries];
 let currentOptions = [];
+let timer;
+let timeLeft = 5;
 
 // Elementos do DOM
 const flagElement = document.getElementById('flag');
 const optionButtons = document.querySelectorAll('.option');
 const scoreElement = document.getElementById('score');
 const remainingElement = document.getElementById('remaining');
+const timerElement = document.getElementById('timer');
 const feedbackElement = document.getElementById('feedback');
 const donationLink = document.getElementById('donation-link');
 const errorsElement = document.createElement('p');
@@ -238,6 +241,83 @@ function updateOptions(options) {
     });
 }
 
+// Função para iniciar o timer
+function startTimer() {
+    timeLeft = 5;
+    timerElement.textContent = timeLeft;
+    
+    // Reiniciar a animação do círculo
+    const progressCircle = document.querySelector('.timer-progress');
+    progressCircle.style.animation = 'none';
+    progressCircle.offsetHeight; // Força um reflow
+    progressCircle.style.animation = 'progress 5s linear forwards';
+    
+    timer = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = timeLeft;
+        
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            // Encontrar o botão correto
+            const correctButton = Array.from(optionButtons).find(button => 
+                currentOptions[parseInt(button.dataset.option) - 1].name === currentCountry.name
+            );
+            // Mostrar a resposta correta e contar como erro
+            showAnswer(correctButton, false);
+        }
+    }, 1000);
+}
+
+// Função para mostrar a resposta
+function showAnswer(selectedButton, isCorrect) {
+    clearInterval(timer);
+    
+    // Parar a animação do progresso
+    const progressCircle = document.querySelector('.timer-progress');
+    progressCircle.style.animation = 'none';
+    
+    // Desabilitar todos os botões
+    optionButtons.forEach(button => {
+        button.classList.add('disabled');
+    });
+
+    // Encontrar o botão correto
+    const correctButton = Array.from(optionButtons).find(button => 
+        currentOptions[parseInt(button.dataset.option) - 1].name === currentCountry.name
+    );
+    
+    // Aplicar estilos de feedback
+    if (isCorrect) {
+        selectedButton.classList.add('correct');
+        score++;
+        scoreElement.textContent = score;
+    } else {
+        if (selectedButton) {
+            selectedButton.classList.add('incorrect');
+        }
+        correctButton.classList.add('correct');
+        errors++;
+        errorsElement.textContent = `Erros: ${errors}`;
+    }
+    
+    setTimeout(() => {
+        // Remover classes de feedback
+        optionButtons.forEach(button => {
+            button.classList.remove('correct', 'incorrect', 'disabled');
+        });
+        selectRandomCountry();
+    }, 2000);
+}
+
+// Função para verificar a resposta
+function checkAnswer(selectedOption) {
+    const selectedButton = optionButtons[selectedOption - 1];
+    const selectedCountry = currentOptions[selectedOption - 1];
+    const isCorrect = selectedCountry.name === currentCountry.name;
+    
+    showAnswer(selectedButton, isCorrect);
+}
+
 // Função para selecionar um país aleatório
 function selectRandomCountry() {
     if (remainingCountries.length === 0) {
@@ -254,51 +334,8 @@ function selectRandomCountry() {
     updateOptions(currentOptions);
     
     remainingElement.textContent = remainingCountries.length;
+    startTimer();
 }
-
-// Função para verificar a resposta
-function checkAnswer(selectedOption) {
-    // Desabilitar todos os botões para evitar múltiplos cliques
-    optionButtons.forEach(button => {
-        button.classList.add('disabled');
-    });
-
-    const selectedCountry = currentOptions[selectedOption - 1];
-    const isCorrect = selectedCountry.name === currentCountry.name;
-    
-    // Encontrar o botão correto
-    const correctButton = Array.from(optionButtons).find(button => 
-        currentOptions[parseInt(button.dataset.option) - 1].name === currentCountry.name
-    );
-    
-    // Aplicar estilos de feedback
-    if (isCorrect) {
-        optionButtons[selectedOption - 1].classList.add('correct');
-        score++;
-        scoreElement.textContent = score;
-    } else {
-        optionButtons[selectedOption - 1].classList.add('incorrect');
-        correctButton.classList.add('correct');
-        errors++;
-        errorsElement.textContent = `Erros: ${errors}`;
-    }
-    
-    setTimeout(() => {
-        // Remover classes de feedback
-        optionButtons.forEach(button => {
-            button.classList.remove('correct', 'incorrect', 'disabled');
-        });
-        selectRandomCountry();
-    }, 2000);
-}
-
-// Adicionar event listeners para os botões de opção
-optionButtons.forEach(button => {
-    button.addEventListener('click', () => {
-        const selectedOption = parseInt(button.dataset.option);
-        checkAnswer(selectedOption);
-    });
-});
 
 // Função para mostrar o fim do jogo
 function showGameOver() {
@@ -313,4 +350,12 @@ function showGameOver() {
 donationLink.href = 'https://www.paypal.com/donate/?hosted_button_id=N75XKVAV7GZAY'; // Substitua pelo seu link de doação
 
 // Iniciar o jogo
-selectRandomCountry(); 
+selectRandomCountry();
+
+// Adicionar event listeners para os botões de opção
+optionButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const selectedOption = parseInt(button.dataset.option);
+        checkAnswer(selectedOption);
+    });
+}); 
