@@ -214,6 +214,7 @@ const errorsElement = document.createElement('p');
 errorsElement.id = 'errors';
 document.querySelector('.score-container').appendChild(errorsElement);
 
+
 // Função para normalizar strings (remover acentos e converter para minúsculas)
 function normalizeString(str) {
     return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

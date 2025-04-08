@@ -1,3 +1,21 @@
+:root {
+    --base-color: white;
+    --base-variant: #e8e9ed;
+    --text-color: #1a1717;
+    --secondary-text: #232738;
+    --primary-color: #3a435d;
+    --acent-color: #0071ff;
+}   
+
+.darkmode {
+    --base-color: #2c2c2c;
+    --base-variant: #1d1b1b;
+    --text-color: #ffffff;
+    --secondary-text: #a4a5b8;
+    --primary-color: #3a435d;
+    --acent-color: #0071ff;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -6,7 +24,8 @@
 }
 
 body {
-    background-color: #f0f2f5;
+    background-color: var(--base-variant);
+    color: var(--text-color);
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -14,7 +33,7 @@ body {
 }
 
 .container {
-    background-color: white;
+    background-color: var(--base-color);
     padding: 2rem;
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
@@ -22,7 +41,7 @@ body {
     width: 90%;
 }
 
-h1 {
+h2 {
     text-align: center;
     color: #1a73e8;
     margin-bottom: 2rem;
@@ -36,9 +55,10 @@ h1 {
 
 .score-container {
     display: flex;
-    justify-content: space-between;
+    justify-content: left;
+    gap: 95px;
     font-size: 1.1rem;
-    color: #5f6368;
+    color: var(--text-color);
     margin-bottom: 1rem;
 }
 
@@ -116,6 +136,41 @@ h1 {
     background-color: #2d8e47;
 }
 
+#theme-switch {
+    background: none !important;
+    background-image: none !important;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    height: 50px;
+    width: 50px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid var(--primary-color);
+    background-color: var(--base-variant);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+#theme-switch svg {
+    fill: var(--primary-color);
+}
+
+#theme-switch svg:last-child {
+    display: none;
+}
+
+.darkmode #theme-switch svg:first-child{
+    display: none;
+}
+
+.darkmode #theme-switch svg:last-child{
+    display: block;
+}
+
 @media (max-width: 480px) {
     .container {
         padding: 1rem;
@@ -128,4 +183,20 @@ h1 {
     #flag {
         max-width: 100%;
     }
-} 
+}
+
+@keyframes button-click {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+    50% {
+        transform: scale(1.15) rotate(15deg);
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+#theme-switch.clicked {
+    animation: button-click 0.4s ease;
+}
