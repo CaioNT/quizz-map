@@ -18,7 +18,7 @@ Um jogo interativo para testar seus conhecimentos sobre bandeiras de países ao 
 4. Selecione a branch principal como fonte
 5. Salve as alterações
 
-O jogo estará disponível em: `https://caiont.github.io/quizz-map/`
+O jogo estará disponível em: [`https://caiont.github.io/quizz-map/](https://caiont.github.io/quizz-map/)
 
 ## Personalização
 
