@@ -201,11 +201,11 @@ let currentCountry;
 let score = 0;
 let errors = 0;
 let remainingCountries = [...countries];
+let currentOptions = [];
 
 // Elementos do DOM
 const flagElement = document.getElementById('flag');
-const answerInput = document.getElementById('answer');
-const submitButton = document.getElementById('submit');
+const optionButtons = document.querySelectorAll('.option');
 const scoreElement = document.getElementById('score');
 const remainingElement = document.getElementById('remaining');
 const feedbackElement = document.getElementById('feedback');
@@ -214,58 +214,28 @@ const errorsElement = document.createElement('p');
 errorsElement.id = 'errors';
 document.querySelector('.score-container').appendChild(errorsElement);
 
-
-// Função para normalizar strings (remover acentos e converter para minúsculas)
-function normalizeString(str) {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
-
-// Função para verificar se a resposta está correta
-function checkAnswer(userAnswer, correctAnswer) {
-    const normalizedUserAnswer = normalizeString(userAnswer);
-    const normalizedCorrectAnswer = normalizeString(correctAnswer);
+// Função para selecionar 3 países aleatórios diferentes do país atual
+function getRandomOptions(correctCountry) {
+    const options = [correctCountry];
+    const availableCountries = countries.filter(country => country.name !== correctCountry.name);
     
-    // Verifica se a resposta do usuário contém pelo menos 60% dos caracteres da resposta correta
-    const similarity = calculateSimilarity(normalizedUserAnswer, normalizedCorrectAnswer);
-    return similarity >= 0.6;
-}
-
-// Função para calcular a similaridade entre duas strings
-function calculateSimilarity(str1, str2) {
-    const longer = str1.length > str2.length ? str1 : str2;
-    const shorter = str1.length > str2.length ? str2 : str1;
-    const longerLength = longer.length;
-    
-    if (longerLength === 0) return 1.0;
-    
-    return (longerLength - editDistance(longer, shorter)) / longerLength;
-}
-
-// Função para calcular a distância de edição entre duas strings
-function editDistance(s1, s2) {
-    s1 = s1.toLowerCase();
-    s2 = s2.toLowerCase();
-
-    const costs = [];
-    for (let i = 0; i <= s1.length; i++) {
-        let lastValue = i;
-        for (let j = 0; j <= s2.length; j++) {
-            if (i === 0) {
-                costs[j] = j;
-            } else {
-                if (j > 0) {
-                    let newValue = costs[j - 1];
-                    if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
-                        newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
-                    }
-                    costs[j - 1] = lastValue;
-                    lastValue = newValue;
-                }
-            }
+    while (options.length < 4) {
+        const randomIndex = Math.floor(Math.random() * availableCountries.length);
+        const randomCountry = availableCountries[randomIndex];
+        if (!options.includes(randomCountry)) {
+            options.push(randomCountry);
         }
-        if (i > 0) costs[s2.length] = lastValue;
     }
-    return costs[s2.length];
+    
+    // Embaralhar as opções
+    return options.sort(() => Math.random() - 0.5);
+}
+
+// Função para atualizar as opções na tela
+function updateOptions(options) {
+    optionButtons.forEach((button, index) => {
+        button.textContent = options[index].name;
+    });
 }
 
 // Função para selecionar um país aleatório
@@ -274,64 +244,70 @@ function selectRandomCountry() {
         showGameOver();
         return;
     }
-    
+
     const randomIndex = Math.floor(Math.random() * remainingCountries.length);
     currentCountry = remainingCountries[randomIndex];
+    remainingCountries.splice(randomIndex, 1);
+    
     flagElement.src = currentCountry.flag;
-    answerInput.value = '';
-    feedbackElement.textContent = '';
+    currentOptions = getRandomOptions(currentCountry);
+    updateOptions(currentOptions);
+    
     remainingElement.textContent = remainingCountries.length;
 }
+
+// Função para verificar a resposta
+function checkAnswer(selectedOption) {
+    // Desabilitar todos os botões para evitar múltiplos cliques
+    optionButtons.forEach(button => {
+        button.classList.add('disabled');
+    });
+
+    const selectedCountry = currentOptions[selectedOption - 1];
+    const isCorrect = selectedCountry.name === currentCountry.name;
+    
+    // Encontrar o botão correto
+    const correctButton = Array.from(optionButtons).find(button => 
+        currentOptions[parseInt(button.dataset.option) - 1].name === currentCountry.name
+    );
+    
+    // Aplicar estilos de feedback
+    if (isCorrect) {
+        optionButtons[selectedOption - 1].classList.add('correct');
+        score++;
+        scoreElement.textContent = score;
+    } else {
+        optionButtons[selectedOption - 1].classList.add('incorrect');
+        correctButton.classList.add('correct');
+        errors++;
+        errorsElement.textContent = `Erros: ${errors}`;
+    }
+    
+    setTimeout(() => {
+        // Remover classes de feedback
+        optionButtons.forEach(button => {
+            button.classList.remove('correct', 'incorrect', 'disabled');
+        });
+        selectRandomCountry();
+    }, 2000);
+}
+
+// Adicionar event listeners para os botões de opção
+optionButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const selectedOption = parseInt(button.dataset.option);
+        checkAnswer(selectedOption);
+    });
+});
 
 // Função para mostrar o fim do jogo
 function showGameOver() {
     flagElement.style.display = 'none';
-    answerInput.style.display = 'none';
-    submitButton.style.display = 'none';
+    optionButtons.forEach(button => {
+        button.style.display = 'none';
+    });
     feedbackElement.textContent = `Parabéns! Você completou o jogo com ${score} pontos!`;
 }
-
-// Função para verificar a resposta do usuário
-function checkUserAnswer() {
-    const userAnswer = answerInput.value.trim();
-    
-    if (!userAnswer) {
-        feedbackElement.textContent = 'Por favor, digite um país';
-        return;
-    }
-    
-    if (checkAnswer(userAnswer, currentCountry.name)) {
-        score++;
-        scoreElement.textContent = score;
-        feedbackElement.textContent = 'Correto!';
-        feedbackElement.style.color = 'green';
-        
-        // Remove o país atual da lista de países restantes
-        remainingCountries = remainingCountries.filter(country => country !== currentCountry);
-        
-        // Aguarda 1 segundo antes de mostrar o próximo país
-        setTimeout(selectRandomCountry, 1000);
-    } else {
-        errors++;
-        errorsElement.textContent = `Erros: ${errors}`;
-        feedbackElement.textContent = `Incorreto! O país era: ${currentCountry.name}`;
-        feedbackElement.style.color = 'red';
-        
-        // Aguarda 2 segundos antes de mostrar o próximo país
-        setTimeout(() => {
-            remainingCountries = remainingCountries.filter(country => country !== currentCountry);
-            selectRandomCountry();
-        }, 2000);
-    }
-}
-
-// Event listeners
-submitButton.addEventListener('click', checkUserAnswer);
-answerInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-        checkUserAnswer();
-    }
-});
 
 // Configurar o link de doação
 donationLink.href = 'https://www.paypal.com/donate/?hosted_button_id=N75XKVAV7GZAY'; // Substitua pelo seu link de doação
