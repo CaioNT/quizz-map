@@ -44,7 +44,10 @@ body {
 h2 {
     text-align: center;
     color: #1a73e8;
-    margin-bottom: 2rem;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
 }
 
 .game-container {
@@ -55,11 +58,19 @@ h2 {
 
 .score-container {
     display: flex;
-    justify-content: left;
-    gap: 95px;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
     font-size: 1.1rem;
     color: var(--text-color);
     margin-bottom: 1rem;
+}
+
+.score-container p, 
+.score-container div#lives-container {
+    flex-basis: auto;
+    margin: 0;
 }
 
 p {
@@ -74,6 +85,7 @@ p {
 .flag-container {
     margin: 20px 0;
     text-align: center;
+    display: block;
 }
 
 .flag-container img {
@@ -81,6 +93,13 @@ p {
     max-height: 200px;
     border: 1px solid #ccc;
     border-radius: 5px;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    pointer-events: none;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .input-container {
@@ -282,18 +301,8 @@ p {
     stroke: var(--acent-color);
     stroke-width: 5;
     stroke-linecap: round;
-    stroke-dasharray: 283;
-    stroke-dashoffset: 283;
-    animation: progress 5s linear forwards;
-}
-
-@keyframes progress {
-    from {
-        stroke-dashoffset: 283;
-    }
-    to {
-        stroke-dashoffset: 0;
-    }
+    stroke-dasharray: 283; /* 2 * PI * 45 */
+    stroke-dashoffset: 283; /* Começa vazio */
 }
 
 .timer-circle span {
@@ -304,4 +313,232 @@ p {
     font-size: 24px;
     font-weight: bold;
     color: var(--text-color);
+}
+
+/* --- Estilos Tela de Início --- */
+#start-screen {
+    text-align: center;
+}
+
+.mode-selection {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.mode-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    border: 2px solid var(--primary-color);
+    background-color: var(--base-color);
+    color: var(--text-color);
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.mode-button.selected {
+    background-color: var(--acent-color);
+    color: white;
+    border-color: var(--acent-color);
+}
+
+.mode-button:not(.selected):hover {
+    background-color: var(--base-variant);
+}
+
+#classic-options {
+    margin-bottom: 1.5rem;
+}
+
+#classic-options label {
+    margin-right: 0.5rem;
+}
+
+#classic-options select {
+    padding: 0.5rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+#start-game {
+    padding: 0.8rem 2rem;
+    font-size: 1.1rem;
+    background-color: var(--acent-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 1.5rem; /* Espaçamento antes da descrição */
+}
+
+#start-game:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#start-game:not(:disabled):hover {
+    background-color: #0056b3; /* Tom mais escuro de azul */
+}
+
+.mode-description {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--secondary-text);
+    text-align: left;
+    border-top: 1px solid var(--base-variant);
+    padding-top: 1rem;
+}
+
+.mode-description p {
+    margin-bottom: 0.5rem;
+    white-space: normal; /* Permite quebra de linha */
+}
+
+/* --- Estilos Tela do Jogo --- */
+#game-screen {
+    position: relative;
+    padding-top: 2.2rem;
+}
+
+#return-to-start {
+    position: absolute;
+    top: 2rem;
+    left: 1rem;
+    background: none;
+    border: none;
+    padding: 0.5rem;
+    cursor: pointer;
+    color: var(--text-color); 
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+    z-index: 10;
+}
+
+#return-to-start svg {
+    width: 30px;
+    height: 30px;
+}
+
+#return-to-start:hover {
+    background-color: var(--base-variant);
+}
+
+#lives-container p {
+    color: #d93025;
+    font-weight: bold;
+}
+
+#play-again {
+    margin-top: 1.5rem;
+    padding: 0.8rem 1.5rem;
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+#play-again:hover {
+    background-color: #1557b0;
+}
+
+/* Ocultar elementos não usados inicialmente */
+#game-screen, 
+#classic-options, 
+#lives-container, 
+#errors-display,
+#play-again {
+    display: none;
+}
+
+/* Animação "On Fire" (Aplicada ao <p> pai) - Suavizada */
+@keyframes on-fire-animation {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        color: var(--text-color); 
+        text-shadow: none;
+    }
+    25% {
+        transform: scale(1.05) rotate(-2deg); /* Escala e rotação menores */
+        color: #ffa500; 
+        text-shadow: 0 0 4px #ffcc00; /* Sombra menor */
+    }
+    50% {
+        transform: scale(1.1) rotate(0deg); /* Escala máxima menor */
+        color: #ff4500; 
+        text-shadow: 0 0 6px #ff8c00; /* Sombra menor */
+    }
+    75% {
+        transform: scale(1.05) rotate(2deg); /* Escala e rotação menores */
+        color: #ffa500; 
+        text-shadow: 0 0 4px #ffcc00; /* Sombra menor */
+    }
+}
+
+/* Aplica a animação ON FIRE ao <p> pai */
+.score-container p.score-on-fire-parent {
+    position: relative; 
+    display: inline-block; 
+    animation: on-fire-animation 0.9s ease-in-out infinite; /* Duração levemente maior */
+    font-weight: bold; 
+}
+
+/* Emoji de Fogo Piscando (Agora no <p> pai) */
+.score-container p.score-on-fire-parent::after {
+    content: '🔥';
+    position: absolute;
+    right: -1.1em; /* Ajuste conforme necessário */
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1em; /* Tamanho relativo ao <p> */
+    animation: fire-flicker 0.4s ease-in-out infinite alternate;
+    /* Garante que fique acima se houver sobreposição */
+    z-index: 1;
+     /* Evita que o emoji herde a animação do pai */
+    display: inline-block; /* Para aplicar transform separado */
+    animation-fill-mode: both; /* Mantém estado da animação */
+}
+
+@keyframes fire-flicker {
+    from {
+        opacity: 1;
+        transform: translateY(-50%) scale(1.1);
+    }
+    to {
+        opacity: 0.7;
+        transform: translateY(-55%) scale(1);
+    }
+}
+
+/* Estilos para os fogos de artifício */
+.firework-particle {
+    position: fixed;
+    bottom: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+@keyframes firework-burst {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+    }
 }

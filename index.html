@@ -14,35 +14,77 @@
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3">
         <path d="M480-280q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM200-440H40v-80h160v80Zm720 0H760v-80h160v80ZM440-760v-160h80v160h-80Zm0 720v-160h80v160h-80ZM256-650l-101-97 57-59 96 100-52 56Zm492 496-97-101 53-55 101 97-57 59Zm-98-550 97-101 59 57-100 96-56-52ZM154-212l101-97 55 53-97 101-59-57Z"/></svg>
     </button>
+
     <div class="container">
-        <h2>Quiz de Bandeiras</h2>
-        <div class="game-container">
-            <div class="score-container">
-                <p>Pontuação: <span id="score">0</span></p>
-                <p class="center">Países restantes: <span id="remaining">0</span></p>
+        <!-- Tela de Início -->
+        <div id="start-screen">
+            <h2>Escolha o Modo de Jogo</h2>
+            <div class="mode-selection">
+                <button class="mode-button" data-mode="classic">Clássico</button>
+                <button class="mode-button" data-mode="hardcore">Hardcore</button>
+                <button class="mode-button" data-mode="gnosis">Gnose-Suprema</button>
             </div>
-            <div class="flag-container">
-                <img id="flag" src="" alt="Bandeira do país">
+            <div id="classic-options">
+                <label for="country-count">Número de países:</label>
+                <select id="country-count">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="40">40</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="195">Todos (195)</option>
+                </select>
             </div>
-            <div class="timer-container">
-                <div class="timer-circle">
-                    <svg class="timer-svg" viewBox="0 0 100 100">
-                        <circle class="timer-background" cx="50" cy="50" r="45"/>
-                        <circle class="timer-progress" cx="50" cy="50" r="45"/>
-                    </svg>
-                    <span id="timer">5</span>
-                </div>
-            </div>
-            <div class="options-container">
-                <button class="option" data-option="1">Opção 1</button>
-                <button class="option" data-option="2">Opção 2</button>
-                <button class="option" data-option="3">Opção 3</button>
-                <button class="option" data-option="4">Opção 4</button>
+            <button id="start-game" disabled>Iniciar Jogo</button>
+             <div class="mode-description">
+                <p><strong>Clássico:</strong> Sem tempo, sem vidas. Escolha quantos países.</p>
+                <p><strong>Hardcore:</strong> 5 segundos por bandeira, 5 vidas. Todos os países.</p>
+                <p><strong>Gnose-Suprema:</strong> 3 segundos por bandeira, 3 vidas. Todos os países.</p>
             </div>
         </div>
-        <div class="donation-container">
-            <p>Gostou do jogo? Considere fazer uma doação!</p>
-            <a href="#" id="donation-link">Fazer doação</a>
+
+        <!-- Tela do Jogo (inicialmente oculta) -->
+        <div id="game-screen">
+            <!-- Botão Voltar ao Início (Ícone de Casa) -->
+            <button id="return-to-start" title="Voltar ao Início">
+                 <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z"/></svg>
+            </button>
+
+            <h2>Quiz de Bandeiras</h2>
+            <div class="game-container">
+                <div class="score-container">
+                    <p>Pontuação: <span id="score">0</span></p>
+                    <p class="center">Países restantes: <span id="remaining">0</span></p>
+                    <div id="lives-container"> <!-- Vidas -->
+                        <p>Vidas: <span id="lives">0</span> ❤️</p>
+                    </div>
+                     <p id="errors-display">Erros: <span id="errors-count">0</span></p> <!-- Contador de Erros (Opcional, pode remover se não quiser) -->
+                </div>
+                <div class="flag-container">
+                    <img id="flag" src="" alt="Bandeira do país">
+                </div>
+                <div class="timer-container">
+                    <div class="timer-circle">
+                        <svg class="timer-svg" viewBox="0 0 100 100">
+                            <circle class="timer-background" cx="50" cy="50" r="45"/>
+                            <circle class="timer-progress" cx="50" cy="50" r="45"/>
+                        </svg>
+                        <span id="timer">5</span>
+                    </div>
+                </div>
+                <div class="options-container">
+                    <button class="option" data-option="1">Opção 1</button>
+                    <button class="option" data-option="2">Opção 2</button>
+                    <button class="option" data-option="3">Opção 3</button>
+                    <button class="option" data-option="4">Opção 4</button>
+                </div>
+                 <div id="feedback"></div> <!-- Div para mensagens de fim de jogo -->
+                 <button id="play-again">Jogar Novamente</button> <!-- Botão Jogar Novamente -->
+            </div>
+            <div class="donation-container">
+                <p>Gostou do jogo? Considere fazer uma doação!</p>
+                <a href="#" id="donation-link">Fazer doação</a>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>

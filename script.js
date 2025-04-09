@@ -197,25 +197,170 @@ const countries = [
     { name: 'Zimbábue', flag: 'https://flagcdn.com/w320/zw.png' }
 ];
 
+// --- Variáveis Globais de Estado do Jogo ---
 let currentCountry;
 let score = 0;
 let errors = 0;
-let remainingCountries = [...countries];
+let lives = 0;
+let gameMode = null; // 'classic', 'hardcore', 'gnosis'
+let maxCountries = 0; // Para modo clássico
+let countriesPlayed = 0;
+let countriesToPlay = [];
 let currentOptions = [];
 let timer;
 let timeLeft = 5;
+let streak = 0; // Contador de acertos consecutivos
+let timerPaused = false;
+let startTime = 0; // Tempo em que o timer iniciou
+let pauseStartTime = 0; // Momento em que a pausa começou
+let totalPausedTime = 0; // Tempo total acumulado em pausa
+let animationFrameId = null; // ID para requestAnimationFrame
+const CIRCLE_CIRCUMFERENCE = 283; // 2 * Math.PI * 45;
+let currentGameDuration = 5; // Duração padrão, será ajustada
 
-// Elementos do DOM
+// --- Elementos do DOM ---
+// Telas
+const startScreen = document.getElementById('start-screen');
+const gameScreen = document.getElementById('game-screen');
+
+// Tela de Início
+const modeButtons = document.querySelectorAll('.mode-button');
+const classicOptionsDiv = document.getElementById('classic-options');
+const countryCountSelect = document.getElementById('country-count');
+const startGameButton = document.getElementById('start-game');
+
+// Tela do Jogo
 const flagElement = document.getElementById('flag');
 const optionButtons = document.querySelectorAll('.option');
 const scoreElement = document.getElementById('score');
+const scoreContainerP = scoreElement.parentElement; // Obtém o <p> pai
 const remainingElement = document.getElementById('remaining');
+const livesContainer = document.getElementById('lives-container');
+const livesElement = document.getElementById('lives');
+const errorsDisplay = document.getElementById('errors-display'); // Opcional
+const errorsCountElement = document.getElementById('errors-count'); // Opcional
+const timerContainer = document.querySelector('.timer-container');
 const timerElement = document.getElementById('timer');
-const feedbackElement = document.getElementById('feedback');
+const feedbackElement = document.getElementById('feedback'); // Agora usado para fim de jogo
+const playAgainButton = document.getElementById('play-again');
+const returnToStartButton = document.getElementById('return-to-start'); // Novo botão
 const donationLink = document.getElementById('donation-link');
-const errorsElement = document.createElement('p');
-errorsElement.id = 'errors';
-document.querySelector('.score-container').appendChild(errorsElement);
+
+// --- Lógica da Tela de Início ---
+modeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        // Remove seleção anterior
+        modeButtons.forEach(btn => btn.classList.remove('selected'));
+        // Seleciona o atual
+        button.classList.add('selected');
+        gameMode = button.dataset.mode;
+
+        // Mostra/oculta opções do modo clássico
+        if (gameMode === 'classic') {
+            classicOptionsDiv.style.display = 'block';
+        } else {
+            classicOptionsDiv.style.display = 'none';
+        }
+        // Habilita botão iniciar
+        startGameButton.disabled = false;
+    });
+});
+
+startGameButton.addEventListener('click', () => {
+    initializeGame();
+    startScreen.style.display = 'none';
+    gameScreen.style.display = 'block';
+});
+
+playAgainButton.addEventListener('click', () => {
+    gameScreen.style.display = 'none';
+    startScreen.style.display = 'block';
+    feedbackElement.textContent = ''; // Limpa mensagem de fim de jogo
+    playAgainButton.style.display = 'none'; // Oculta botão
+    // Reseta seleção de modo na tela inicial
+    modeButtons.forEach(btn => btn.classList.remove('selected'));
+    classicOptionsDiv.style.display = 'none';
+    startGameButton.disabled = true;
+});
+
+// Listener para o botão Voltar ao Início
+returnToStartButton.addEventListener('click', () => {
+    cancelAnimationFrame(animationFrameId); // Para o timer do jogo atual
+    gameScreen.style.display = 'none';
+    startScreen.style.display = 'block';
+    // Reseta seleção de modo na tela inicial
+    modeButtons.forEach(btn => btn.classList.remove('selected'));
+    classicOptionsDiv.style.display = 'none';
+    startGameButton.disabled = true;
+});
+
+// --- Inicialização e Reset do Jogo ---
+function initializeGame() {
+    score = 0;
+    errors = 0;
+    countriesPlayed = 0;
+    streak = 0;
+    cancelAnimationFrame(animationFrameId); 
+    animationFrameId = null;
+    timerPaused = false;
+    totalPausedTime = 0;
+
+    scoreElement.textContent = score;
+    scoreContainerP.classList.remove('score-on-fire-parent');
+    errorsCountElement.textContent = errors; 
+
+    // Configurações baseadas no modo
+    if (gameMode === 'classic') {
+        maxCountries = parseInt(countryCountSelect.value);
+        lives = Infinity; 
+        timerContainer.style.display = 'none'; 
+        livesContainer.style.display = 'none';
+        errorsDisplay.style.display = 'block'; 
+        currentGameDuration = Infinity; // Timer desabilitado
+    } else {
+        maxCountries = countries.length; 
+        timerContainer.style.display = 'flex'; 
+        livesContainer.style.display = 'block'; 
+        errorsDisplay.style.display = 'none'; 
+        if (gameMode === 'hardcore') {
+            lives = 5;
+            currentGameDuration = 5;
+        } else { // gnosis
+            lives = 3;
+            currentGameDuration = 3; // Definir 3 segundos para Gnose
+        }
+        livesElement.textContent = lives;
+    }
+
+    // Prepara a lista de países para jogar
+    countriesToPlay = [...countries]; // Copia a lista original
+    shuffleArray(countriesToPlay); // Embaralha
+    if (gameMode === 'classic' && maxCountries < countries.length) {
+        countriesToPlay = countriesToPlay.slice(0, maxCountries); // Limita ao número escolhido
+    }
+    
+    remainingElement.textContent = countriesToPlay.length;
+
+    // Garante que elementos de jogo estejam visíveis (exceto os específicos de modo)
+    flagElement.style.display = 'block';
+    optionButtons.forEach(b => b.style.display = 'block');
+    feedbackElement.textContent = '';
+    playAgainButton.style.display = 'none';
+
+    // Começa a primeira rodada
+    selectRandomCountry(); 
+}
+
+// Função para embaralhar array (Fisher-Yates - Modifica no local)
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]]; // Troca direta
+    }
+    // Não precisa retornar nada
+}
+
+// --- Lógica Principal do Jogo ---
 
 // Função para selecionar 3 países aleatórios diferentes do país atual
 function getRandomOptions(correctCountry) {
@@ -225,137 +370,299 @@ function getRandomOptions(correctCountry) {
     while (options.length < 4) {
         const randomIndex = Math.floor(Math.random() * availableCountries.length);
         const randomCountry = availableCountries[randomIndex];
-        if (!options.includes(randomCountry)) {
+        if (!options.some(opt => opt.name === randomCountry.name)) {
             options.push(randomCountry);
         }
     }
     
-    // Embaralhar as opções
-    return options.sort(() => Math.random() - 0.5);
+    shuffleArray(options); // Embaralha a array 'options' diretamente
+    return options; // Retorna a array já embaralhada
 }
 
 // Função para atualizar as opções na tela
 function updateOptions(options) {
     optionButtons.forEach((button, index) => {
         button.textContent = options[index].name;
+        // Habilita botões (caso tenham sido desabilitados)
+        button.classList.remove('disabled', 'correct', 'incorrect'); 
     });
 }
 
-// Função para iniciar o timer
+// Função para iniciar o timer (Apenas Hardcore/Gnosis)
 function startTimer() {
-    timeLeft = 5;
+    if (gameMode === 'classic') return; 
+
+    cancelAnimationFrame(animationFrameId);
+    timeLeft = currentGameDuration; // Usar a duração do modo atual
     timerElement.textContent = timeLeft;
+    timerPaused = false;
+    startTime = Date.now();
+    totalPausedTime = 0;
     
-    // Reiniciar a animação do círculo
     const progressCircle = document.querySelector('.timer-progress');
-    progressCircle.style.animation = 'none';
-    progressCircle.offsetHeight; // Força um reflow
-    progressCircle.style.animation = 'progress 5s linear forwards';
+    progressCircle.style.strokeDashoffset = CIRCLE_CIRCUMFERENCE;
     
-    timer = setInterval(() => {
-        timeLeft--;
-        timerElement.textContent = timeLeft;
-        
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            // Encontrar o botão correto
-            const correctButton = Array.from(optionButtons).find(button => 
-                currentOptions[parseInt(button.dataset.option) - 1].name === currentCountry.name
-            );
-            // Mostrar a resposta correta e contar como erro
-            showAnswer(correctButton, false);
-        }
-    }, 1000);
+    animationFrameId = requestAnimationFrame(animateTimer);
 }
 
-// Função para mostrar a resposta
-function showAnswer(selectedButton, isCorrect) {
-    clearInterval(timer);
-    
-    // Parar a animação do progresso
-    const progressCircle = document.querySelector('.timer-progress');
-    progressCircle.style.animation = 'none';
-    
-    // Desabilitar todos os botões
-    optionButtons.forEach(button => {
-        button.classList.add('disabled');
-    });
+// Loop de animação e lógica do timer (Apenas Hardcore/Gnosis)
+function animateTimer(timestamp) {
+    if (gameMode === 'classic') return;
 
-    // Encontrar o botão correto
+    if (timerPaused) {
+        animationFrameId = requestAnimationFrame(animateTimer);
+        return;
+    }
+
+    const currentTime = Date.now();
+    const elapsedTime = (currentTime - startTime - totalPausedTime) / 1000; 
+    
+    if (elapsedTime >= currentGameDuration) { // Usar a duração do modo atual
+        timeLeft = 0;
+        timerElement.textContent = timeLeft;
+        const progressCircle = document.querySelector('.timer-progress');
+        progressCircle.style.strokeDashoffset = 0; 
+        
+        handleIncorrectAnswer(null); 
+        return; 
+    }
+    
+    // Usar a duração do modo atual para calcular timeLeft e a fração
+    timeLeft = Math.max(0, currentGameDuration - Math.floor(elapsedTime));
+    timerElement.textContent = timeLeft;
+
+    const timeFraction = elapsedTime / currentGameDuration; 
+    const currentOffset = CIRCLE_CIRCUMFERENCE * (1 - timeFraction);
+    const progressCircle = document.querySelector('.timer-progress');
+    progressCircle.style.strokeDashoffset = Math.max(0, currentOffset);
+    
+    animationFrameId = requestAnimationFrame(animateTimer);
+}
+
+// Função para pausar o timer
+function pauseTimer() {
+    if (gameMode === 'classic') return;
+    if (!timerPaused) {
+        timerPaused = true;
+        pauseStartTime = Date.now(); 
+        console.log("Timer paused");
+    }
+}
+
+// Função para retomar o timer
+function resumeTimer() {
+    if (gameMode === 'classic') return;
+    if (timerPaused) {
+        const pauseDuration = Date.now() - pauseStartTime; 
+        totalPausedTime += pauseDuration; 
+        timerPaused = false;
+        // O loop animateTimer vai continuar no próximo frame
+        console.log("Timer resumed");
+    }
+}
+
+// Lida com resposta CORRETA
+function handleCorrectAnswer(selectedButton) {
+     score++;
+     streak++;
+     scoreElement.textContent = score;
+     selectedButton.classList.add('correct');
+     
+     if (streak >= 3) {
+         scoreContainerP.classList.add('score-on-fire-parent');
+     }
+     
+     optionButtons.forEach(button => button.classList.add('disabled'));
+
+     // Prepara próxima rodada ou fim de jogo
+     setTimeout(() => {
+        nextRoundOrEndGame();
+     }, 1000); // Tempo menor para resposta correta
+}
+
+// Lida com resposta INCORRETA (ou tempo esgotado)
+function handleIncorrectAnswer(selectedButton) {
+    errors++;
+    streak = 0;
+    scoreContainerP.classList.remove('score-on-fire-parent');
+    errorsCountElement.textContent = errors; 
+
+    if (gameMode !== 'classic') {
+        lives--;
+        livesElement.textContent = lives;
+    }
+
+    // Mostra feedback visual
     const correctButton = Array.from(optionButtons).find(button => 
         currentOptions[parseInt(button.dataset.option) - 1].name === currentCountry.name
     );
-    
-    // Aplicar estilos de feedback
-    if (isCorrect) {
-        selectedButton.classList.add('correct');
-        score++;
-        scoreElement.textContent = score;
-    } else {
-        if (selectedButton) {
-            selectedButton.classList.add('incorrect');
-        }
-        correctButton.classList.add('correct');
-        errors++;
-        errorsElement.textContent = `Erros: ${errors}`;
+    if (selectedButton) { // Se não foi tempo esgotado
+        selectedButton.classList.add('incorrect');
     }
-    
-    setTimeout(() => {
-        // Remover classes de feedback
-        optionButtons.forEach(button => {
-            button.classList.remove('correct', 'incorrect', 'disabled');
-        });
-        selectRandomCountry();
-    }, 2000);
+    if (correctButton) { 
+       correctButton.classList.add('correct');
+    }
+    optionButtons.forEach(button => button.classList.add('disabled'));
+
+    // Verifica se o jogo acabou (sem vidas)
+    if (gameMode !== 'classic' && lives <= 0) {
+        cancelAnimationFrame(animationFrameId); 
+        setTimeout(() => showGameOver(true), 2000); // Adiciona delay antes de mostrar fim de jogo por vidas
+    } else {
+        // Prepara próxima rodada
+        setTimeout(() => {
+            nextRoundOrEndGame();
+        }, 2000); // Tempo maior para resposta incorreta
+    }
 }
 
 // Função para verificar a resposta
 function checkAnswer(selectedOption) {
+    cancelAnimationFrame(animationFrameId); // Para o timer assim que responder
+    timerPaused = false; // Garante que não está pausado
+
     const selectedButton = optionButtons[selectedOption - 1];
     const selectedCountry = currentOptions[selectedOption - 1];
     const isCorrect = selectedCountry.name === currentCountry.name;
     
-    showAnswer(selectedButton, isCorrect);
+    if (isCorrect) {
+        handleCorrectAnswer(selectedButton);
+    } else {
+        handleIncorrectAnswer(selectedButton);
+    }
 }
 
-// Função para selecionar um país aleatório
+// Função que decide se vai para próxima rodada ou termina
+function nextRoundOrEndGame() {
+     countriesPlayed++;
+     if (countriesToPlay.length > 0) {
+         selectRandomCountry(); // Próxima rodada
+     } else {
+         showGameOver(false); // Fim de jogo (completou ou zerou vidas)
+     }
+}
+
+// Função para selecionar o próximo país
 function selectRandomCountry() {
-    if (remainingCountries.length === 0) {
-        showGameOver();
+    if (countriesToPlay.length === 0) {
+        showGameOver(false); // Não deveria acontecer aqui, mas por segurança
         return;
     }
 
-    const randomIndex = Math.floor(Math.random() * remainingCountries.length);
-    currentCountry = remainingCountries[randomIndex];
-    remainingCountries.splice(randomIndex, 1);
-    
+    currentCountry = countriesToPlay.shift(); // Pega e remove o próximo país da lista
+        
     flagElement.src = currentCountry.flag;
     currentOptions = getRandomOptions(currentCountry);
-    updateOptions(currentOptions);
+    updateOptions(currentOptions); // Reseta botões visualmente
     
-    remainingElement.textContent = remainingCountries.length;
-    startTimer();
+    remainingElement.textContent = countriesToPlay.length;
+    
+    // Reinicia o timer (se aplicável)
+    startTimer(); 
+}
+
+// --- Efeitos Visuais ---
+function launchFireworks(particleCount = 30) {
+    const colors = ['#ff4500', '#ffa500', '#ffd700', '#ffeb3b', '#ffc107']; // Cores quentes
+    const container = document.body; // Adiciona ao body para cobrir a tela
+
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('firework-particle');
+
+        // Posição inicial e cor aleatórias
+        const startX = 40 + Math.random() * 20; // Lança de uma área central (40% a 60%)
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.left = `${startX}%`;
+        particle.style.backgroundColor = color;
+
+        // Trajetória e duração aleatórias
+        const translateX = (Math.random() - 0.5) * 800; // Movimento horizontal (-400px a +400px)
+        const translateY = -(window.innerHeight * 0.6 + Math.random() * window.innerHeight * 0.3); // Sobe 60-90% da tela
+        const duration = 1.5 + Math.random() * 1.5; // Duração entre 1.5s e 3s
+        const delay = Math.random() * 0.5; // Pequeno delay aleatório para não lançar tudo junto
+
+        particle.style.setProperty('--tx', `${translateX}px`);
+        particle.style.setProperty('--ty', `${translateY}px`);
+
+        particle.style.animation = `firework-burst ${duration}s cubic-bezier(0.1, 0.8, 0.2, 1) ${delay}s forwards`;
+
+        // Remove a partícula do DOM após a animação
+        particle.addEventListener('animationend', () => {
+            particle.remove();
+        });
+
+        container.appendChild(particle);
+    }
 }
 
 // Função para mostrar o fim do jogo
-function showGameOver() {
+function showGameOver(lostByLives) {
+    cancelAnimationFrame(animationFrameId); 
     flagElement.style.display = 'none';
-    optionButtons.forEach(button => {
-        button.style.display = 'none';
-    });
-    feedbackElement.textContent = `Parabéns! Você completou o jogo com ${score} pontos!`;
+    optionButtons.forEach(button => button.style.display = 'none');
+    timerContainer.style.display = 'none'; 
+
+    let message = "";
+    let perfectScore = false; // Flag para vitória perfeita
+
+    if (lostByLives) {
+        message = `Fim de jogo! Você ficou sem vidas. Pontuação final: ${score}.`;
+    } else if (gameMode === 'classic') {
+        const percentage = maxCountries > 0 ? (score / maxCountries) * 100 : 0;
+        if (errors === 0 && score === maxCountries) { // Vitória perfeita no clássico
+            message = `PERFEITO! Você acertou todas as ${maxCountries} bandeiras sem erros! Incrível!`;
+            perfectScore = true;
+        } else if (score === 0) {
+            message = `Fim de jogo! Você não acertou nenhuma das ${maxCountries} bandeiras. Que tal tentar de novo?`;
+        } else if (score < maxCountries / 2) {
+            message = `Fim de jogo! Você acertou ${score} de ${maxCountries} bandeiras (${percentage.toFixed(0)}%). Continue praticando!`;
+        } else {
+            message = `Parabéns! Você completou o modo Clássico (${maxCountries} países) com ${score} acertos (${percentage.toFixed(0)}%) e ${errors} erros.`;
+        }
+    } else { // Hardcore ou Gnosis
+         if (errors === 0) { // Sobreviveu sem erros
+             message = `IMPECÁVEL! Você zerou o modo ${gameMode === 'hardcore' ? 'Hardcore' : 'Gnose-Suprema'} sem erros! Pontuação final: ${score}.`;
+             perfectScore = true;
+         } else {
+             message = `Parabéns! Você sobreviveu ao modo ${gameMode === 'hardcore' ? 'Hardcore' : 'Gnose-Suprema'}! Pontuação final: ${score}.`;
+         }
+    }
+    
+    feedbackElement.textContent = message;
+    feedbackElement.style.display = 'block'; 
+    playAgainButton.style.display = 'block'; 
+
+    // Lança os fogos se for vitória perfeita
+    if (perfectScore) {
+        launchFireworks(50); // Lança 50 partículas
+    }
 }
 
 // Configurar o link de doação
-donationLink.href = 'https://www.paypal.com/donate/?hosted_button_id=N75XKVAV7GZAY'; // Substitua pelo seu link de doação
+donationLink.href = 'https://www.paypal.com/donate/?hosted_button_id=N75XKVAV7GZAY'; 
 
-// Iniciar o jogo
-selectRandomCountry();
+// Event listener para visibilidade da página
+document.addEventListener('visibilitychange', () => {
+    if (gameScreen.style.display !== 'none') { // Só pausa/retoma se o jogo estiver ativo
+        if (document.hidden) {
+            pauseTimer();
+        } else {
+            resumeTimer();
+        }
+    }
+});
 
 // Adicionar event listeners para os botões de opção
 optionButtons.forEach(button => {
     button.addEventListener('click', () => {
-        const selectedOption = parseInt(button.dataset.option);
-        checkAnswer(selectedOption);
+        // Só processa clique se o botão não estiver desabilitado
+        if (!button.classList.contains('disabled')) {
+             const selectedOption = parseInt(button.dataset.option);
+             checkAnswer(selectedOption);
+        }
     });
 }); 
+
+// Não iniciar o jogo automaticamente, esperar seleção do usuário
+// selectRandomCountry(); 
